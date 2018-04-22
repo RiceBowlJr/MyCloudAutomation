@@ -309,12 +309,57 @@ Resources:
       VpcId:
         Ref: Vpclabcldf
 
+  TargetGroupEmpty:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties: 
+      HeathcheckIntervalSeconds: 200
+      HealthCheckPath: /healthcheck.html
+      HealthCheckPort: '80'
+      HealthCheckProtocol: 'HTTP'
+      HealthCheckTimoutSeconds: 5
+      HealthCheckThresholdcount: 3
+      Name: 'Tgrp-lab'
+      Port: 80
+      Protocol: 'HTTP'
+      TargetType: 'instance'
+      UnhealthyThresholdCount: 2
+      VpcId:
+        Ref: Vpclabcldf
+  
+  Litener: 
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn:
+          Ref: TargetGroupEmpty
+      LoadBalancerArn:
+          Ref: ApplicationLoadBalancer
+      Port: '80'
+      Protocol: HTTP
+
+  ListerRule:
+    Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn:
+          Ref: TargetGroupwww
+      Conditions:
+      - Field: host-header
+        Values:
+        - 'didier.osones.com'
+      ListenerArn:
+        Ref: Listener
+      Priority: 1
+
+
   LaunchConfigurationwww:
     Type: 'AWS::AutoScaling::LauncConfiguration'
     Properties:
       AssociatePublicIpAddress: false
-      ImageId:
-      InsetanceType: 
+      ImageId: 'ami-3bfab942'
+      InstanceType: 't2.micro'
       KeyName: Lab002
       SecurityGroups:
         Ref: wwwSecurityGroup
@@ -325,17 +370,27 @@ Resources:
         Fn::Base64: !Sub |
         #!/bin/bash
         yum update -y
-        yum install nginx -y
         yum install git -y
-        service nginx stop
-        rm -Rf /
-        git clone 
-        chkconfg nginx on
+        yum install nginx -y
+        mkdir /usr/share/nginx/www
+        git clone https://github.com/Nandidier/awsosoneslab002.git /usr/share/nginx/www
+        mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.old
+        mv /usr/share/nginx/www/nginx.conf /etc/nginx/nginx.conf
+        chmod 755 -R /usr/share/nginx/www
+        service nginx start 
+        chkconfig nginx on
 
 
+  AutoScalingGroup: 
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties: 
+      AvailabilityZones: 
+        Fn::GetAZs: 
+          Ref: "AWS::Region"
+      LaunchConfigurationName: 
+        Ref: LaunchConfigurationwww
+      MaxSize: "3"
+      MinSize: "3"
+      LoadBalancerNames:
+        Ref: ApplicationLoadBalancer
 
-
-Outputs:
-  Vpclaboutid:
-    Description: 'Output for the vpc id'
-    Value: !Ref Vpclabcldf

@@ -326,7 +326,7 @@ Resources:
       VpcId:
         Ref: Vpclabcldf
   
-  Litener: 
+  Listener: 
     Type: 'AWS::ElasticLoadBalancingV2::Listener'
     Properties:
       DefaultActions:
@@ -338,7 +338,7 @@ Resources:
       Port: '80'
       Protocol: HTTP
 
-  ListerRule:
+  ListenerRule:
     Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
     Properties:
       Actions:
@@ -355,14 +355,14 @@ Resources:
 
 
   LaunchConfigurationwww:
-    Type: 'AWS::AutoScaling::LauncConfiguration'
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
     Properties:
       AssociatePublicIpAddress: false
       ImageId: 'ami-3bfab942'
       InstanceType: 't2.micro'
       KeyName: Lab002
       SecurityGroups:
-        Ref: wwwSecurityGroup
+        Ref: SecurityGroupwww
       Tags: 
         - Keys: Name
           Value: www-server

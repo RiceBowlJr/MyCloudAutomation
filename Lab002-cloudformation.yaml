@@ -1,0 +1,341 @@
+Resources:
+
+#vpc creation 
+        
+  Vpclabcldf:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+     CidrBlock: 10.0.0.0/16
+     EnableDnsSupport: 'false'
+     EnableDnsHostnames: 'false'
+     InstanceTenancy: 'default'
+     Tags:
+       - Key: Name
+         Value: Vpc-lab
+
+#public and private subnets creation
+
+  PubSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: 'eu-west-1a'
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: Sub-pub-lab-10.0.1
+      VpcId:
+        Ref: Vpclabcldf
+
+
+  PubSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: 'eu-west-1b'
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: Sub-pub-lab-10.0.2
+      VpcId:
+        Ref: Vpclabcldf
+
+  PubSubnet3:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: 'eu-west-1c'
+      CidrBlock: 10.0.3.0/24
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: Sub-pub-lab-10.0.3
+      VpcId:
+        Ref: Vpclabcldf
+
+  PrivSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: 'eu-west-1a'
+      CidrBlock: 10.0.4.0/24
+      MapPublicIpOnLaunch: 'false'
+      Tags:
+        - Key: Name
+          Value: Sub-priv-lab-10.0.4
+      VpcId:
+        Ref: Vpclabcldf
+
+
+  PrivSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: 'eu-west-1b'
+      CidrBlock: 10.0.5.0/24
+      MapPublicIpOnLaunch: 'false'
+      Tags:
+        - Key: Name
+          Value: Sub-priv-lab-10.0.5
+      VpcId:
+        Ref: Vpclabcldf
+
+
+  PrivSubnet3:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: 'eu-west-1c'
+      CidrBlock: 10.0.6.0/24
+      MapPublicIpOnLaunch: 'false'
+      Tags:
+        - Key: Name
+          Value: Sub-priv-lab-10.0.5
+      VpcId:
+        Ref: Vpclabcldf
+
+
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Ig-lab
+
+
+  RouteTableInternet:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId:
+        Ref: Vpclabcldf
+      Tags:
+        - Key: Name
+          Value: Rt-lab-out
+
+  RouteToInternet:
+    Type: 'AWS::EC2::Route'
+    Properties: 
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: 
+        Ref: InternetGateway
+      RouteTableId:
+        Ref: RouteTableInternet
+
+
+  PubSubnetRouteTableAssociation1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+     RouteTableId:
+       Ref: RouteTableInternet
+     SubnetId:
+       Ref: PubSubnet1
+
+  PubSubnetRouteTableAssociation2:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+     RouteTableId:
+       Ref: RouteTableInternet
+     SubnetId:
+       Ref: PubSubnet2
+
+
+  PubSubnetRouteTableAssociation3:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+     RouteTableId:
+       Ref: RouteTableInternet
+     SubnetId:
+       Ref: PubSubnet3
+
+  ElasticIpForNat:
+    Type: 'AWS::EC2::EIP'
+    DependsOn: Vpclabcldf
+    Properties:
+      Domain: vpc
+   
+  NatGateway:
+    Type: 'AWS::EC2::NatGateway'
+    Properties: 
+      AllocationId:
+        Ref: ElasticIpForNat
+      SubnetId: 
+        Ref: PubSubnet1
+      Tags: 
+        - Key: Name
+          Value: Natgtw-lab
+
+  RouteTableToNat:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId:
+        Ref: Vpclabcldf
+      Tags:
+        - Key: Name
+          Value: Rt-nat-lab
+
+  RouteToNat:
+          Type: 'AWS::EC2::Route'
+          Properties: 
+            DestinationCidrBlock: 0.0.0.0/0
+            NatGatewayId: 
+              Ref: NatGateway
+            RouteTableId: 
+              Ref: RouteTableToNat
+
+
+  PrivSubnetRouteTableAssociation1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+     RouteTableId:
+       Ref: RouteTableToNat
+     SubnetId:
+       Ref: PrivSubnet1
+
+  PrivSubnetRouteTableAssociation1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+     RouteTableId:
+       Ref: RouteTableToNat
+     SubnetId:
+       Ref: PrivSubnet2
+
+  PrivSubnetRouteTableAssociation3:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+     RouteTableId:
+       Ref: RouteTableToNat
+     SubnetId:
+       Ref: PrivSubnet3
+
+#Security groups
+
+  AdmSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties: 
+      GroupDescription: 'Allow ssh from anywhere'
+      VpcId:
+        Ref: Vpclabcldf
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: '0'
+          ToPort: '65535'
+          CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+      Tags: 
+        - Key: Name
+          Value: Sgp-lab-adm
+
+
+  SecurityGroupwww:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties: 
+      GroupDescription: 'Allow http trafic from anywhere and ssh only from adm '
+      VpcId:
+        Ref: Vpclabcldf
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          SourceSecurityGroupId: 
+            Ref: AdmSecurityGroup
+      Tags: 
+        - Key: Name
+          Value: Sgp-lab-wwww
+
+
+  AlbSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties: 
+      GroupDescription: 'Allow http trafic from anywhere and ssh only from adm '
+      VpcId:
+        Ref: Vpclabcldf
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          SourceSecurityGroupId: 
+            Ref: AdmSecurityGroup
+      Tags: 
+        - Key: Name
+          Value: Sgp-lab-alb
+
+  ApplicationLoadBalancer:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Scheme: internet-facing
+      SecurityGroups: 
+        Ref: AlbSecurityGroup
+      Subnets: 
+      - Ref: PubSubnet1
+      - Ref: PubSubnet2
+      - Ref: PubSubnet3
+      IpAddressType: ipv4
+      Tags:
+        - Key: Name
+          Value: Alb-lab
+          
+  TargetGroupwww:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties: 
+      HeathcheckIntervalSeconds: 200
+      HealthCheckPath: /healthcheck.html
+      HealthCheckPort: '80'
+      HealthCheckProtocol: 'HTTP'
+      HealthCheckTimoutSeconds: 5
+      HealthCheckThresholdcount: 3
+      Name: 'Tgrp-lab'
+      Port: 80
+      Protocol: 'HTTP'
+      TargetType: 'instance'
+      UnhealthyThresholdCount: 2
+      VpcId:
+        Ref: Vpclabcldf
+
+  LaunchConfigurationwww:
+    Type: 'AWS::AutoScaling::LauncConfiguration'
+    Properties:
+      AssociatePublicIpAddress: false
+      ImageId:
+      InsetanceType: 
+      KeyName: Lab002
+      SecurityGroups:
+        Ref: wwwSecurityGroup
+      Tags: 
+        - Keys: Name
+          Value: www-server
+      UserData:
+        Fn::Base64: !Sub |
+        #!/bin/bash
+        yum update -y
+        yum install nginx -y
+        yum install git -y
+        service nginx stop
+        rm -Rf /
+        git clone 
+        chkconfg nginx on
+
+
+
+
+Outputs:
+  Vpclaboutid:
+    Description: 'Output for the vpc id'
+    Value: !Ref Vpclabcldf

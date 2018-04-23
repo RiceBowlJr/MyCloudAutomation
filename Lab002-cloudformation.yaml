@@ -93,6 +93,7 @@ Resources:
 
   InternetGateway:
     Type: 'AWS::EC2::InternetGateway'
+    DependsOn: RouteTableInternet
     Properties:
       Tags:
         - Key: Name
@@ -110,6 +111,7 @@ Resources:
 
   RouteToInternet:
     Type: 'AWS::EC2::Route'
+    DependsOn: InternetGateway
     Properties: 
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: 
@@ -117,6 +119,13 @@ Resources:
       RouteTableId:
         Ref: RouteTableInternet
 
+  VpcGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId:
+        Ref: Vpclabcldf
+      VpnGatewayId:
+        Ref: InternetGateway
 
   PubSubnetRouteTableAssociation1:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
@@ -282,7 +291,7 @@ Resources:
     Properties:
       Scheme: internet-facing
       SecurityGroups: 
-        Ref: AlbSecurityGroup
+      - Ref: AlbSecurityGroup
       Subnets: 
       - Ref: PubSubnet1
       - Ref: PubSubnet2
@@ -295,12 +304,12 @@ Resources:
   TargetGroupwww:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     Properties: 
-      HeathcheckIntervalSeconds: 200
+      HealthCheckIntervalSeconds: 200
       HealthCheckPath: /healthcheck.html
       HealthCheckPort: '80'
       HealthCheckProtocol: 'HTTP'
-      HealthCheckTimoutSeconds: 5
-      HealthCheckThresholdcount: 3
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 3
       Name: 'Tgrp-lab'
       Port: 80
       Protocol: 'HTTP'
@@ -312,13 +321,13 @@ Resources:
   TargetGroupEmpty:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     Properties: 
-      HeathcheckIntervalSeconds: 200
+      HealthCheckIntervalSeconds: 200
       HealthCheckPath: /healthcheck.html
       HealthCheckPort: '80'
       HealthCheckProtocol: 'HTTP'
-      HealthCheckTimoutSeconds: 5
-      HealthCheckThresholdcount: 3
-      Name: 'Tgrp-lab'
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 3
+      Name: 'Tgrp-lab-empty'
       Port: 80
       Protocol: 'HTTP'
       TargetType: 'instance'
@@ -362,10 +371,7 @@ Resources:
       InstanceType: 't2.micro'
       KeyName: Lab002
       SecurityGroups:
-        Ref: SecurityGroupwww
-      Tags: 
-        - Keys: Name
-          Value: www-server
+        - Ref: SecurityGroupwww
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
